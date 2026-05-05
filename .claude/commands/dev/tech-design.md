@@ -34,6 +34,29 @@ mcp__plugin_claude-mem_mcp-search__search(
 )
 ```
 
+### Step 1.5: Verify Inherited PRD Facts
+
+Treat every factual claim in the PRD's "Current State (observed)"
+section and any concrete identifier that leaked into Requirements
+(config keys, column names, routes, counts, version numbers) as an
+**input to verify**, not a truth to build on.
+
+For each claim:
+- If it carries `— verified via: ...`, re-run the named source
+  (read the file, run the command, query RLM) and confirm it still
+  holds. Stale verification is worse than none.
+- If it carries `[assumption, verify in tech-design]`, resolve it
+  now via RLM / file read / command — or flag it as a blocker.
+- If a concrete identifier appears in the PRD, independently
+  confirm it against code before reusing it. Do not copy
+  identifiers verbatim without a code-level check.
+
+Record each resolved claim in the tech-design's "Current
+Architecture (RLM-verified)" section with its own source citation
+(file:line, command, date). A PRD fact that fails verification
+invalidates the dependent requirement — stop and loop back to
+`/dev:prd` rather than designing against a false premise.
+
 ### Step 2: RLM Architecture Discovery
 
 **Discover existing patterns**:

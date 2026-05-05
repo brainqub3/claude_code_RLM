@@ -134,8 +134,15 @@ Create PRD combining insights + user's clarifications:
 
 {User-provided problem statement}
 
-### Current State (from RLM analysis)
-{What currently exists in the codebase that's relevant}
+### Current State (observed)
+
+Each factual claim about the codebase or runtime MUST be sourced:
+append `— verified via: <file:line | command | host>, <date>` or
+tag with `[assumption, verify in tech-design]`. Unsourced claims
+are rejected by the reality-check pass (Step 5.5).
+
+- {Observation 1} — verified via: `{source}`, {date}
+- {Observation 2} — [assumption, verify in tech-design]
 
 ### Past Similar Features (from claude-mem)
 {Reference to similar features we've built, what we learned}
@@ -174,6 +181,15 @@ As a {user type}, I want to {capability}, so that {benefit}.
 2. {Additional user stories following same pattern}
 
 ## Requirements
+
+**Describe by class and sensitivity, not by concrete identifier.**
+PRDs drift when they enumerate specific keys, column names, routes,
+or env vars — those belong in tech-design, where they're validated
+against code. Prefer "5 database connection parameters including
+one high-sensitivity password" over listing each by name. Concrete
+identifiers are allowed only when the identifier itself IS the
+requirement (e.g. "expose endpoint `POST /v2/webhooks` for
+backward compat").
 
 ### Functional Requirements
 1. **FR-1**: {Requirement description}
@@ -225,6 +241,26 @@ As a {user type}, I want to {capability}, so that {benefit}.
 2. Run `/dev:tech-design` to create technical design
 3. Run `/dev:tasks` to break down into tasks
 ```
+
+### Step 5.5: Reality-Check Pass (MANDATORY)
+
+Before saving, scan the draft for factual claims about the
+codebase, runtime, or environment. Every such claim must be one of:
+
+1. **Sourced** — followed by `— verified via: <file:line | command
+   output | host>, <date>`. If the source is an RLM call, name the
+   exact helper (`find_symbol`, `grep`) and the term queried.
+2. **Tagged as assumption** — annotated
+   `[assumption, verify in tech-design]`.
+
+If neither: stop, surface the unsourced claim to the user, ask them
+to confirm the source or tag it as an assumption, then retry.
+
+Typical offenders: config key lists, column names, API routes,
+version numbers, file counts, "the system currently does X"
+statements. If you're tempted to enumerate identifiers, re-check
+whether that list belongs in tech-design instead (per the
+Requirements guidance above).
 
 ### Step 6: Save PRD to File System
 
