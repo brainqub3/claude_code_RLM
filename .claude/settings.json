@@ -7,7 +7,7 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "grep -q _archive && printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Blocked: rlm_vs_agent_experiment/_archive is off-limits - the withdrawn-run record kept as provenance for the cold RLM eval (issue #6). Do not read it.\"}}' || true"
+            "command": "grep -qE '_archive|contexts_with_labels|verify_eval|_cache|oolong_trec_coarse' && printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Blocked: off-limits answer key/strategy for the cold RLM eval (issue #6): the _archive record, gold per-question labels (contexts_with_labels), the gold-bearing manifest (oolong_trec_coarse.jsonl), or the verifier/_cache. Agents under test must not read these; score out-of-band via score.py using the default manifest path.\"}}' || true"
           }
         ]
       }
