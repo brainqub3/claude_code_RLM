@@ -1,37 +1,45 @@
 #!/usr/bin/env python3
-"""Run the OOLONG (trec_coarse) eval with the GENERAL `/rlm` skill (LLM-as-root).
+"""Run the OOLONG (trec_coarse) eval as a matched A/B: the GENERAL `/rlm` skill
+(LLM-as-root) vs the SAME model as a plain agent with the skill OFF (issue #6).
 
-This is the RLM arm of the rlm-vs-agent experiment (issue #6). Unlike the agent
-baselines (`agent_*/run_plain_eval.py`), here each item is solved by an *RLM root*:
-a headless Claude Code session (`claude -p`, model = --root) that is given ONLY the
-context file path and the question, told to **use the `rlm` skill**, and left to
-author the decomposition itself. The root never reads the 131K context into its
-window; it drives `.claude/skills/rlm/scripts/rlm_repl.py`, sub-queries a cheap
-`haiku` leaf over chunks, and aggregates in Python.
+Two modes, ONE harness -- the only difference is whether the `/rlm` skill is on:
+  * --mode rlm   : an *RLM root* (`claude -p`, model = --root) given ONLY the context
+                   file path + the question, told to **use the rlm skill**, and left
+                   to author the decomposition itself. It never reads the 131K context
+                   into its window; it drives `.claude/skills/rlm/scripts/rlm_repl.py`,
+                   sub-queries a cheap `haiku` leaf over chunks, and aggregates in
+                   Python. The leaf is ALWAYS haiku.
+  * --mode agent : the RLM-OFF *control* -- a standard Claude Code agent (same model,
+                   same harness) with NO Skill tool and a plain task prompt, left to
+                   complete the eval however it likes with normal tools. No leaf.
 
-Crucially this measures the *general skill*, self-authored at runtime:
+Everything else is held fixed across modes (same single-shot `claude -p`, task
+framing, cold per-task state, disallowed background/delegation tools, usage capture,
+`score.py` output) so the comparison isolates the skill.
+
+In rlm mode this measures the *general skill*, self-authored at runtime:
   * The root is handed NO classify-then-count recipe, NO label taxonomy beyond what
     the benchmark question itself contains, and NO OOLONG-specific parsing.
   * The strategy (chunking, prompts, aggregation) is discovered by the root.
 
-ALL usage is accounted for, root AND leaf, kept separate:
-  * Root: the `claude -p --output-format stream-json` session's own usage/cost
-    (its model turns: reading metadata, writing REPL code, reading truncated stdout).
-  * Leaf: every `llm_query`/`llm_query_map` call spawns a SEPARATE `claude -p`
-    subprocess whose usage is NOT in the root's JSON. We set RLM_LEAF_USAGE_LOG so
-    the instrumented `llm_query` (see rlm_repl.py) appends each leaf call's usage to
-    a per-task log; we sum it. Total = root + leaf.
+ALL usage is accounted for, kept separate:
+  * Root/agent: the `claude -p --output-format stream-json` session's own usage/cost.
+  * Leaf (rlm mode only): every `llm_query`/`llm_query_map` call spawns a SEPARATE
+    `claude -p` subprocess whose usage is NOT in the root's JSON. We set
+    RLM_LEAF_USAGE_LOG so the instrumented `llm_query` (see rlm_repl.py) appends each
+    leaf call's usage to a per-task log; we sum it. Total = root + leaf.
 
-Outputs (under rlm_skill_<root>/):
-  preds_rlm_skill.jsonl    -- {id, output, total_tokens, total_cost_usd}  (TOTAL = root+leaf)
+Outputs (rlm_skill_<root>/ for rlm mode, agent_<model>/ for agent mode):
+  preds_*.jsonl            -- {id, output, total_tokens, total_cost_usd}  (TOTAL = root+leaf)
   diagnostics.json         -- per-task root/leaf/total split, wall time, turns, answers, notes
-  _runs/task_<id>.stream.jsonl   -- raw root stream-json transcript (orchestration evidence)
-  _runs/leaf_usage_<id>.jsonl    -- raw per-leaf-call usage records
+  _runs/task_<id>.stream.jsonl   -- raw stream-json transcript (orchestration evidence)
+  _runs/leaf_usage_<id>.jsonl    -- raw per-leaf-call usage records (rlm mode only)
 
-Usage:
-  python run_rlm_skill_eval.py --root opus                 # full 10-task arm
-  python run_rlm_skill_eval.py --root opus --ids 17000206  # single-task smoke test
-  python score.py --manifest oolong_trec_coarse.jsonl --predictions rlm_skill_opus/preds_rlm_skill.jsonl
+Usage (the three arms of issue #6):
+  python run_rlm_skill_eval.py --mode agent --root opus    # control: plain opus agent
+  python run_rlm_skill_eval.py --mode agent --root haiku   # control: plain haiku agent
+  python run_rlm_skill_eval.py --mode rlm   --root opus    # RLM: opus root + haiku leaf
+  python score.py --predictions rlm_skill_opus/preds_rlm_skill.jsonl   # default manifest
 """
 from __future__ import annotations
 
@@ -89,6 +97,29 @@ OPERATIONAL CONSTRAINTS (this is a single, non-interactive run):
 - Before you reply, run `python {repl} final` to confirm a final answer is stored.
   If it is not set, or your code has not processed ALL items in the context, finish
   that work first and then set FINAL.
+- When everything is complete, reply with ONLY the final answer text, in the exact
+  format the query requests, and nothing else.
+"""
+
+# RLM-OFF control prompt. Same task framing + operational constraints as the RLM
+# template, with the rlm/REPL/leaf/FINAL lines removed -- so the ONLY difference
+# between control and treatment is the skill (issue #6 matched A/B).
+AGENT_PROMPT_TEMPLATE = """\
+Answer a question about a large context file.
+
+The context file is on disk at:
+  {ctx}
+
+The file is large and holds many short items; it is LARGER than a single file read
+returns, so you must account for ALL of the items -- do not answer from a partial read
+or a sample. Use whatever approach you like with the available tools.
+
+query = {question!r}
+
+OPERATIONAL CONSTRAINTS (this is a single, non-interactive run):
+- Do ALL work synchronously, in the foreground, within THIS session. Do NOT run
+  commands in the background, do NOT use the Monitor tool, and do NOT wait for
+  external events.
 - When everything is complete, reply with ONLY the final answer text, in the exact
   format the query requests, and nothing else.
 """
@@ -220,7 +251,7 @@ def _repl_final() -> str:
 
 
 def run_one(item: Dict[str, Any], root_model: str, arm_dir: Path,
-            runs_dir: Path, timeout: int) -> Dict[str, Any]:
+            runs_dir: Path, timeout: int, mode: str) -> Dict[str, Any]:
     global CLAUDE
     CLAUDE = CLAUDE or _claude_exe()
     iid = int(item["id"])
@@ -237,23 +268,29 @@ def run_one(item: Dict[str, Any], root_model: str, arm_dir: Path,
     _reset_state()
 
     env = dict(os.environ)
-    env["RLM_SUB_MODEL"] = "haiku"          # leaf is haiku in all arms (issue #6)
-    env["RLM_MAX_WORKERS"] = env.get("RLM_MAX_WORKERS", "8")
-    env["RLM_MAX_DEPTH"] = "1"
-    env["RLM_LEAF_USAGE_LOG"] = str(leaf_log.resolve())
-    # Raise the root's Bash-tool timeout so a synchronous llm_query_map over all
-    # chunks can block to completion in the foreground (in headless single-shot
-    # mode a short bash timeout otherwise pushes the agentic root toward
-    # background execution + Monitor, which never resumes).
+    # Raise the root's Bash-tool timeout so a synchronous, foreground job (an
+    # llm_query_map over all chunks, or a plain agent's own script) can block to
+    # completion -- in headless single-shot mode a short bash timeout otherwise
+    # pushes the agent toward background execution + Monitor, which never resumes.
     env["BASH_DEFAULT_TIMEOUT_MS"] = "1200000"   # 20 min
     env["BASH_MAX_TIMEOUT_MS"] = "1200000"
-
-    prompt = ROOT_PROMPT_TEMPLATE.format(
-        ctx=str(ctx_abs), repl=str(REPL), question=item["question"])
+    if mode == "rlm":
+        env["RLM_SUB_MODEL"] = "haiku"          # leaf is always haiku (issue #6)
+        env["RLM_MAX_WORKERS"] = env.get("RLM_MAX_WORKERS", "8")
+        env["RLM_MAX_DEPTH"] = "1"
+        env["RLM_LEAF_USAGE_LOG"] = str(leaf_log.resolve())
+        prompt = ROOT_PROMPT_TEMPLATE.format(
+            ctx=str(ctx_abs), repl=str(REPL), question=item["question"])
+        allowed_tools = "Bash Read Write Edit Grep Glob Skill"
+    else:  # agent control (RLM off): no Skill tool, no leaf, plain task prompt
+        env.pop("RLM_LEAF_USAGE_LOG", None)
+        prompt = AGENT_PROMPT_TEMPLATE.format(
+            ctx=str(ctx_abs), question=item["question"])
+        allowed_tools = "Bash Read Write Edit Grep Glob"
     cmd = [
         CLAUDE, "-p", "--model", root_model,
         "--permission-mode", "bypassPermissions",
-        "--allowedTools", "Bash Read Write Edit Grep Glob Skill",
+        "--allowedTools", allowed_tools,
         "--disallowedTools", " ".join(DISALLOWED_TOOLS),
         "--output-format", "stream-json", "--verbose",
     ]
@@ -277,22 +314,27 @@ def run_one(item: Dict[str, Any], root_model: str, arm_dir: Path,
     stream_log.write_text(raw, encoding="utf-8")
     parsed = _parse_root_stream(raw, str(ctx_abs))
     leaf = _read_leaf_usage(leaf_log)
-    repl_final = _repl_final()
-
-    # Scored output: the REPL FINAL value is authoritative for an RLM. A verbal
-    # root reply without FINAL/FINAL_VAR is not a completed RLM trajectory.
-    output = repl_final or "[no answer produced]"
+    # Scored output. For RLM the REPL FINAL value is authoritative -- a verbal root
+    # reply without FINAL/FINAL_VAR is not a completed RLM trajectory. For the agent
+    # control there is no REPL; the answer is the agent's final text reply.
+    if mode == "rlm":
+        repl_final = _repl_final()
+        output = repl_final or "[no answer produced]"
+    else:
+        repl_final = ""
+        output = parsed["result"] or "[no answer produced]"
     forbidden_used = sorted(FORBIDDEN_RLM_TOOLS.intersection(parsed["tool_uses"]))
+    ok = True
     if timed_out:
-        ok = False
-    elif not repl_final:
-        ok = False
-    elif forbidden_used:
         ok = False
     elif parsed["is_error"]:
         ok = False
+    elif forbidden_used:
+        ok = False
+    elif mode == "rlm" and not repl_final:
+        ok = False
     err = "TIMEOUT" if timed_out else parsed["err"]
-    if not repl_final and not err:
+    if mode == "rlm" and not repl_final and not err:
         err = "NO_REPL_FINAL"
     if forbidden_used:
         err = (err + "; " if err else "") + "FORBIDDEN_TOOLS_USED=" + ",".join(forbidden_used)
@@ -320,15 +362,22 @@ def run_one(item: Dict[str, Any], root_model: str, arm_dir: Path,
 def main(argv: List[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--root", required=True, help="root model alias, e.g. opus | sonnet | haiku")
+    ap.add_argument("--root", required=True, help="root/agent model alias, e.g. opus | haiku")
+    ap.add_argument("--mode", choices=["rlm", "agent"], default="rlm",
+                    help="rlm = root drives the /rlm skill (its leaf is always haiku); "
+                         "agent = RLM-off control (standard agent, no Skill tool, no leaf)")
     ap.add_argument("--ids", default=None, help="comma-separated subset of item ids")
     ap.add_argument("--timeout", type=int, default=3000, help="per-task root timeout (s)")
     args = ap.parse_args(argv)
 
-    arm_dir = HERE / f"rlm_skill_{args.root}"
+    if args.mode == "rlm":
+        arm_dir = HERE / f"rlm_skill_{args.root}"
+        preds_path = arm_dir / "preds_rlm_skill.jsonl"
+    else:
+        arm_dir = HERE / f"agent_{args.root}"
+        preds_path = arm_dir / "preds_agent.jsonl"
     runs_dir = arm_dir / "_runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
-    preds_path = arm_dir / "preds_rlm_skill.jsonl"
     diag_path = arm_dir / "diagnostics.json"
 
     items = [json.loads(l) for l in MANIFEST.read_text(encoding="utf-8").splitlines() if l.strip()]
@@ -339,14 +388,16 @@ def main(argv: List[str]) -> int:
     preds_lines: List[str] = []
     diagnostics: List[Dict[str, Any]] = []
     t_run = time.time()
-    print(f"RLM-SKILL OOLONG eval | root={args.root} leaf=haiku | {len(items)} items", flush=True)
+    label = (f"RLM | root={args.root} leaf=haiku" if args.mode == "rlm"
+             else f"AGENT (RLM off) | model={args.root}")
+    print(f"OOLONG eval | {label} | {len(items)} items", flush=True)
     print("=" * 80, flush=True)
 
     for n, item in enumerate(items, 1):
         iid = int(item["id"])
         print(f"[{n}/{len(items)}] id={iid} {item['task']} cw{item['context_window_id']} "
               f"| root={args.root}", flush=True)
-        r = run_one(item, args.root, arm_dir, runs_dir, args.timeout)
+        r = run_one(item, args.root, arm_dir, runs_dir, args.timeout, args.mode)
         last = (r["output"] or "").replace("\n", " ")[-90:]
         print(f"      -> {last!r}", flush=True)
         print(f"      [{r['wall_seconds']:.1f}s, turns={r.get('num_turns')}, "
@@ -354,8 +405,8 @@ def main(argv: List[str]) -> int:
               f"leaf {r['leaf_tokens']:,}tok/${r['leaf_cost']:.4f} "
               f"({r['leaf_calls']} calls) = ${r['total_cost_usd']:.4f}"
               + ("" if r["ok"] else f", ERR={r['err']}") + "]", flush=True)
-        if r.get("read_context_directly"):
-            print("      [WARN: root used Read/Grep/Glob on the context file directly]", flush=True)
+        if args.mode == "rlm" and r.get("read_context_directly"):
+            print("      [WARN: RLM root read the context file directly (skill violation)]", flush=True)
 
         preds_lines.append(json.dumps({
             "id": iid, "output": r["output"],
@@ -363,7 +414,8 @@ def main(argv: List[str]) -> int:
         preds_path.write_text("\n".join(preds_lines) + "\n", encoding="utf-8")
         diagnostics.append(r)
         diag_path.write_text(json.dumps({
-            "root_model": args.root, "leaf_model": "haiku",
+            "mode": args.mode, "root_model": args.root,
+            "leaf_model": "haiku" if args.mode == "rlm" else None,
             "started_unix": t_run, "elapsed_seconds_so_far": round(time.time() - t_run, 2),
             "items": diagnostics}, indent=2), encoding="utf-8")
         print("-" * 80, flush=True)
@@ -375,10 +427,11 @@ def main(argv: List[str]) -> int:
     lc = sum(d["leaf_cost"] for d in diagnostics)
     nbad = sum(1 for d in diagnostics if not d["ok"])
     print("=" * 80, flush=True)
-    print(f"[rlm_skill_{args.root}] {len(diagnostics)} items"
+    print(f"[{arm_dir.name}] {len(diagnostics)} items"
           + (f" | {nbad} failed" if nbad else ""), flush=True)
-    print(f"  ROOT : {rt:,} tok | ${rc:.4f}", flush=True)
-    print(f"  LEAF : {lt:,} tok | ${lc:.4f}", flush=True)
+    print(f"  {'ROOT ' if args.mode == 'rlm' else 'AGENT'}: {rt:,} tok | ${rc:.4f}", flush=True)
+    if args.mode == "rlm":
+        print(f"  LEAF : {lt:,} tok | ${lc:.4f}", flush=True)
     print(f"  TOTAL: {rt + lt:,} tok | ${rc + lc:.4f}", flush=True)
     print(f"  wall : {total_dt:.1f}s ({total_dt/60:.1f} min)", flush=True)
     print(f"  preds -> {preds_path}", flush=True)
