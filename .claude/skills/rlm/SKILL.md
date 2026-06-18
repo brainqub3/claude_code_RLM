@@ -119,19 +119,26 @@ do the aggregation.
 
 ```bash
 python .claude/skills/rlm/scripts/rlm_repl.py exec <<'PY'
-# Example shape for an aggregation task: classify every item, then count.
-items = [l.split("Instance:",1)[1].strip() for l in content.splitlines() if "Instance:" in l]
+# Example shape for an aggregation task: derive records from the actual format,
+# ask leaf LMs for semantic labels, then count/aggregate in Python.
+records = [line.strip() for line in content.splitlines() if line.strip()]
 
-CATS = "numeric value, entity, location, human being, abbreviation, description and abstract concept"
+# Fill these from the user's query and what you observed while probing. Do not
+# assume the file's delimiter, item marker, or labels before inspecting it.
+question = "What should be classified or extracted for each record?"
+categories = ["category_a", "category_b", "category_c"]
+
 def build(batch, start):
-    body = "\n".join(f"{start+i}: {q}" for i, q in enumerate(batch))
-    return ("Classify each item into exactly one of these categories: " + CATS + ".\n"
-            "Output one line 'N: <category>' per item, nothing else.\n\n" + body)
+    body = "\n".join(f"{start+i}: {record}" for i, record in enumerate(batch))
+    return (
+        f"{question}\n"
+        f"Use exactly one of these categories: {', '.join(categories)}.\n"
+        "Output exactly one line per record as 'N: <category>'. No extra text.\n\n"
+        + body
+    )
 
 BATCH = 50
-prompts, idx = [], []
-for s in range(0, len(items), BATCH):
-    prompts.append(build(items[s:s+BATCH], s)); idx.append(s)
+prompts = [build(records[s:s+BATCH], s) for s in range(0, len(records), BATCH)]
 outs = llm_query_map(prompts)          # parallel sub-LM calls; order preserved
 
 import re
@@ -142,8 +149,9 @@ for out in outs:
         m = re.match(r"\s*(\d+)\s*[:.\)]\s*(.+)", ln)
         if m:
             labels[int(m.group(1))] = m.group(2).strip().strip("*[]").lower()
+missing = [i for i in range(len(records)) if i not in labels]
 counts = Counter(labels.values())
-print("classified:", len(labels), "/", len(items))
+print("classified:", len(labels), "/", len(records), "missing:", len(missing))
 print("counts:", dict(counts))
 PY
 ```

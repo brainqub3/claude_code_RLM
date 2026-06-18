@@ -50,6 +50,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import os
 import pickle
 import re
@@ -57,6 +58,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import threading
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
@@ -78,6 +80,14 @@ DEFAULT_MAX_OUTPUT_CHARS = 8000
 DEFAULT_SUB_MODEL = os.environ.get("RLM_SUB_MODEL", "haiku")
 DEFAULT_MAX_WORKERS = int(os.environ.get("RLM_MAX_WORKERS", "8"))
 DEFAULT_RLM_MODEL = os.environ.get("RLM_ROOT_MODEL", "sonnet")
+RLM_CLAUDE_DISALLOWED_TOOLS = (
+    "WebSearch WebFetch Monitor "
+    "ScheduleWakeup Task AskUserQuestion "
+    "CronCreate CronDelete CronList "
+    "RemoteTrigger PushNotification Workflow "
+    "TaskCreate TaskGet TaskList TaskOutput TaskStop TaskUpdate "
+    "EnterPlanMode ExitPlanMode EnterWorktree ExitWorktree"
+)
 
 # A minimal system nudge so leaf outputs are clean and machine-parseable. The
 # paper's llm_query is a plain call; this only trims preambles so that code which
@@ -107,6 +117,53 @@ def _claude_exe() -> str:
     return exe
 
 
+# --- Leaf-usage accounting (opt-in; off by default) ------------------------- #
+# Each llm_query shells out to its own `claude -p` subprocess, so its token/cost
+# usage is NOT visible in the root session's usage JSON. For evaluation we need to
+# account for it. When the environment variable RLM_LEAF_USAGE_LOG points at a
+# file, llm_query adds `--output-format json` to the leaf call, returns the same
+# `result` text the plain call would have produced (so callers are unaffected),
+# and appends one JSON record of that leaf's usage to the log. When the variable
+# is unset, llm_query runs EXACTLY as before (plain text, no JSON) -- so the skill
+# the user actually gets is unchanged; this is purely measurement instrumentation.
+_LEAF_USAGE_LOCK = threading.Lock()
+_LEAF_TOKEN_KEYS = (
+    "input_tokens", "output_tokens",
+    "cache_creation_input_tokens", "cache_read_input_tokens",
+)
+
+
+def _leaf_usage_log_path() -> Optional[str]:
+    p = os.environ.get("RLM_LEAF_USAGE_LOG", "").strip()
+    return p or None
+
+
+def _record_leaf_usage(log_path: str, model: str, obj: Optional[Dict[str, Any]],
+                       ok: bool, note: str = "") -> None:
+    """Append one leaf-call usage record (thread-safe) to log_path as JSONL."""
+    usage = (obj or {}).get("usage") if isinstance(obj, dict) else None
+    usage = usage if isinstance(usage, dict) else {}
+    rec: Dict[str, Any] = {"ts": time.time(), "model": model, "ok": bool(ok)}
+    total = 0
+    for k in _LEAF_TOKEN_KEYS:
+        v = usage.get(k, 0)
+        v = int(v) if isinstance(v, (int, float)) else 0
+        rec[k] = v
+        total += v
+    rec["total_tokens"] = total
+    cost = (obj or {}).get("total_cost_usd") if isinstance(obj, dict) else None
+    rec["cost_usd"] = float(cost) if isinstance(cost, (int, float)) else 0.0
+    if note:
+        rec["note"] = note
+    line = json.dumps(rec)
+    try:
+        with _LEAF_USAGE_LOCK:
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+    except Exception:  # never let accounting break a run
+        pass
+
+
 def llm_query(
     prompt: str,
     model: Optional[str] = None,
@@ -124,9 +181,16 @@ def llm_query(
 
     Returns the sub-LM's text. On failure returns a "[llm_query: ...]" marker
     string rather than raising, so a large loop is not aborted by one bad call.
+
+    Usage accounting: if RLM_LEAF_USAGE_LOG is set, the call is made with
+    `--output-format json` and its usage/cost is appended to that log; the text
+    returned is identical to the un-instrumented path.
     """
     model = model or DEFAULT_SUB_MODEL
+    usage_log = _leaf_usage_log_path()
     cmd = [_claude_exe(), "-p", "--model", model, "--allowedTools", ""]
+    if usage_log:
+        cmd += ["--output-format", "json"]
     if system:
         cmd += ["--append-system-prompt", system]
     try:
@@ -140,13 +204,36 @@ def llm_query(
             errors="replace",
         )
     except subprocess.TimeoutExpired:
+        if usage_log:
+            _record_leaf_usage(usage_log, model, None, ok=False, note=f"TIMEOUT/{timeout}s")
         return f"[llm_query: TIMEOUT after {timeout}s]"
     except Exception as e:  # pragma: no cover - environment dependent
+        if usage_log:
+            _record_leaf_usage(usage_log, model, None, ok=False, note=f"{type(e).__name__}")
         return f"[llm_query: ERROR {type(e).__name__}: {e}]"
-    out = (res.stdout or "").strip()
-    if res.returncode != 0 and not out:
-        err = (res.stderr or "").strip()[:300]
-        return f"[llm_query: ERROR rc={res.returncode}] {err}"
+
+    raw = (res.stdout or "").strip()
+    if not usage_log:
+        # Default path: byte-identical to the original (plain text, no JSON).
+        if res.returncode != 0 and not raw:
+            err = (res.stderr or "").strip()[:300]
+            return f"[llm_query: ERROR rc={res.returncode}] {err}"
+        return raw
+
+    # Instrumented path: parse the JSON envelope, record usage, return result text.
+    try:
+        d = json.loads(raw)
+    except Exception:
+        _record_leaf_usage(usage_log, model, None, ok=False, note="jsonparse")
+        if res.returncode != 0 and not raw:
+            err = (res.stderr or "").strip()[:300]
+            return f"[llm_query: ERROR rc={res.returncode}] {err}"
+        return raw
+    ok = not bool(d.get("is_error"))
+    _record_leaf_usage(usage_log, model, d, ok=ok)
+    out = (d.get("result") or "").strip()
+    if not ok and not out:
+        return f"[llm_query: ERROR is_error] {(d.get('result') or '')[:200]}"
     return out
 
 
@@ -193,22 +280,25 @@ def rlm_query(
     spawns a nested headless Claude Code WITH bash + the rlm skill, so the sub-task
     gets its own REPL, its own llm_query leaves, and its own iterative loop.
 
-    Depth guard: if RLM_DEPTH >= RLM_MAX_DEPTH we degrade to a single llm_query
-    call (this is the paper's documented fallback). depth=1 (the default) therefore
-    means "llm_query leaves only", which is all most tasks -- including OOLONG --
-    require.
+    Depth guard: a child RLM would run at depth+1. If that child depth is at or
+    beyond RLM_MAX_DEPTH, degrade to a single llm_query call. max_depth=1 (the
+    default) therefore means "llm_query leaves only"; max_depth=2 allows the
+    root to spawn one nested RLM level, whose own recursive calls fall back to
+    leaf llm_query calls.
     """
     depth = int(os.environ.get("RLM_DEPTH", "0"))
     max_depth = int(os.environ.get("RLM_MAX_DEPTH", "1"))
-    if depth >= max_depth:
+    child_depth = depth + 1
+    if child_depth >= max_depth:
         return llm_query(
             f"{query}\n\n--- CONTEXT ---\n{context_text}",
             timeout=min(timeout, 300),
         )
 
     model = model or DEFAULT_RLM_MODEL
-    sub_state = Path(state_path or f".claude/rlm_state/sub_d{depth + 1}.pkl")
-    sub_ctx = Path(f".claude/rlm_state/sub_ctx_d{depth + 1}.txt")
+    run_id = f"d{child_depth}_{os.getpid()}_{threading.get_ident()}_{time.time_ns()}"
+    sub_state = Path(state_path) if state_path else Path(f".claude/rlm_state/sub_{run_id}.pkl")
+    sub_ctx = sub_state.with_suffix(".context.txt")
     sub_ctx.parent.mkdir(parents=True, exist_ok=True)
     sub_ctx.write_text(context_text, encoding="utf-8")
 
@@ -219,20 +309,26 @@ def rlm_query(
 
         The context is already on disk at: {sub_ctx}
         The rlm REPL script is at: {repl}
+        Use this isolated REPL state file for every REPL command: {sub_state}
+
+        Start with exactly:
+        python "{repl}" --state "{sub_state}" init "{sub_ctx}"
 
         Initialise the REPL on that file and follow the rlm skill procedure
         (probe -> decompose -> programmatic llm_query over chunks -> aggregate),
-        then set the final answer with FINAL(...) or FINAL_VAR(...). Reply with
-        ONLY the final answer text.
+        passing --state "{sub_state}" to every exec/final command. Then set the
+        final answer with FINAL(...) or FINAL_VAR(...). Reply with ONLY the final
+        answer text.
 
         query = {query!r}
         """
     )
     env = dict(os.environ)
-    env["RLM_DEPTH"] = str(depth + 1)
+    env["RLM_DEPTH"] = str(child_depth)
     cmd = [
         _claude_exe(), "-p", "--model", model,
         "--allowedTools", "Bash Read Write Edit Grep Glob Skill",
+        "--disallowedTools", RLM_CLAUDE_DISALLOWED_TOOLS,
     ]
     try:
         res = subprocess.run(
