@@ -226,5 +226,3 @@ truncated (~8000 chars) before you see it — `print` summaries and samples, not
   login — no API key or SDK. `llm_query` runs it with tools **off** (a plain LLM);
   `rlm_query` runs it with bash + this skill **on** (its own REPL).
 - Keep all scratch/state under `.claude/rlm_state/`.
-- An OOLONG long-context eval lives in `eval/` — see `eval/README.md` to score this
-  skill against the paper's reported numbers.
