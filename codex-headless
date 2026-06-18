@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+if ! command -v codex >/dev/null 2>&1; then
+  echo "Codex CLI was not found on PATH. Install Codex and run 'codex login' before using this wrapper." >&2
+  exit 127
+fi
+
+exec codex exec \
+  --model gpt-5.5 \
+  --config 'model_reasoning_effort="xhigh"' \
+  --config 'approval_policy="never"' \
+  --sandbox workspace-write \
+  --cd "$repo_root" \
+  --ephemeral \
+  "$@"

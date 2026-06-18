@@ -1,0 +1,6 @@
+# Repo-local defaults for Codex runs started from this repository.
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+approval_policy = "never"
+sandbox_mode = "workspace-write"
+

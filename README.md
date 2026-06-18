@@ -43,6 +43,32 @@ that makes it work: the **LLM does the semantics** (classify/extract/summarise) 
 
 ## Usage
 
+### Headless Codex helper
+
+This repo includes a root-level helper that lets Claude Code, another Codex
+session, or any other CLI agent call non-interactive Codex from the repository
+root:
+
+```bash
+./codex-headless "summarize this repo and identify the next implementation step"
+```
+
+On Windows:
+
+```powershell
+.\codex-headless.ps1 "summarize this repo and identify the next implementation step"
+.\codex-headless.cmd "summarize this repo and identify the next implementation step"
+```
+
+The helper runs `codex exec` with `gpt-5.5`, extra-high reasoning
+(`model_reasoning_effort="xhigh"`), `workspace-write` sandboxing,
+`approval_policy=never`, and ephemeral session storage. It also accepts normal
+`codex exec` flags, for example:
+
+```bash
+./codex-headless --json "inspect the git diff and return a risk summary"
+```
+
 1. **Clone this repository**
    ```bash
    git clone https://github.com/Brainqub3/claude_code_RLM.git

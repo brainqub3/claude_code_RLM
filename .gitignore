@@ -5,6 +5,10 @@
 __pycache__/
 *.pyc
 
+# Codex local workspace state; keep shared repo config tracked.
+.codex/*
+!.codex/config.toml
+
 # OOLONG eval run artifacts (timestamped; local scratch).
 # The committed deliverable is rlm_vs_agent_experiment/REPORT.md.
 rlm_vs_agent_experiment/runs/

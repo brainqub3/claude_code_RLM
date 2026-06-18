@@ -1,5 +1,29 @@
 # Project instructions
 
+## Headless Codex sub-agent
+
+This repo exposes a root-level headless Codex command for agents that need a
+non-interactive Codex pass:
+
+```bash
+./codex-headless "review the current repo and list the highest-risk files"
+```
+
+On Windows shells, use either:
+
+```powershell
+.\codex-headless.ps1 "review the current repo and list the highest-risk files"
+.\codex-headless.cmd "review the current repo and list the highest-risk files"
+```
+
+The wrapper runs `codex exec` from the repo root with `gpt-5.5`,
+`model_reasoning_effort="xhigh"`, `--sandbox workspace-write`,
+`approval_policy="never"`, and `--ephemeral`. It preserves normal
+`codex exec` behavior, so callers can pass a prompt argument, pipe stdin, add
+flags such as `--json`, or use `-o <file>` for the final message. It requires
+the Codex CLI on `PATH` and an existing `codex login` or `CODEX_API_KEY` scoped
+to the invocation.
+
 ## RLM mode for long-context tasks
 
 This repository includes a faithful "Recursive Language Model" (RLM) setup for
