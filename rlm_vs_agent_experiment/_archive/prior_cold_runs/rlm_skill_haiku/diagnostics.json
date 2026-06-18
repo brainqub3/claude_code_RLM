@@ -1,0 +1,92 @@
+{
+  "root_model": "haiku",
+  "leaf_model": "haiku",
+  "started_unix": 1781778352.5845537,
+  "elapsed_seconds_so_far": 2133.89,
+  "items": [
+    {
+      "id": 17000206,
+      "ok": true,
+      "timed_out": false,
+      "err": "",
+      "task": "TASK_TYPE.LEAST_FREQ",
+      "answer_type": "ANSWER_TYPE.LABEL",
+      "gold": "['numeric value']",
+      "context_file": "contexts/trec_coarse_cw6.txt",
+      "output": "Label: numeric value",
+      "root_result": "Label: numeric value",
+      "repl_final": "numeric value",
+      "root_tokens": 547494,
+      "root_cost": 0.164757,
+      "leaf_tokens": 15451676,
+      "leaf_cost": 9.64627,
+      "leaf_calls": 480,
+      "leaf_failed": 0,
+      "total_tokens": 15999170,
+      "total_cost_usd": 9.811027,
+      "wall_seconds": 1264.85,
+      "num_turns": 15,
+      "tool_uses": {
+        "Bash": 13,
+        "Read": 1
+      },
+      "read_context_directly": false
+    },
+    {
+      "id": 17000208,
+      "ok": true,
+      "timed_out": false,
+      "err": "",
+      "task": "TASK_TYPE.MOST_FREQ",
+      "answer_type": "ANSWER_TYPE.LABEL",
+      "gold": "['numeric value']",
+      "context_file": "contexts/trec_coarse_cw8.txt",
+      "output": "[no answer produced]",
+      "root_result": "",
+      "repl_final": "",
+      "root_tokens": 816164,
+      "root_cost": 0.173807,
+      "leaf_tokens": 904464,
+      "leaf_cost": 1.066049,
+      "leaf_calls": 26,
+      "leaf_failed": 0,
+      "total_tokens": 1720628,
+      "total_cost_usd": 1.239857,
+      "wall_seconds": 321.28,
+      "num_turns": 21,
+      "tool_uses": {
+        "Bash": 18,
+        "Read": 1,
+        "ScheduleWakeup": 1
+      },
+      "read_context_directly": false
+    },
+    {
+      "id": 17000222,
+      "ok": true,
+      "timed_out": false,
+      "err": "",
+      "task": "TASK_TYPE.NUMERIC_ONE_CLASS",
+      "answer_type": "ANSWER_TYPE.NUMERIC",
+      "gold": "[352]",
+      "context_file": "contexts/trec_coarse_cw8.txt",
+      "output": "Answer: 436",
+      "root_result": "Answer: 436",
+      "repl_final": "Answer: 436",
+      "root_tokens": 598160,
+      "root_cost": 0.130381,
+      "leaf_tokens": 2298257,
+      "leaf_cost": 2.963259,
+      "leaf_calls": 64,
+      "leaf_failed": 0,
+      "total_tokens": 2896417,
+      "total_cost_usd": 3.09364,
+      "wall_seconds": 547.34,
+      "num_turns": 16,
+      "tool_uses": {
+        "Bash": 15
+      },
+      "read_context_directly": false
+    }
+  ]
+}

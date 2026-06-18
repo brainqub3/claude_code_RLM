@@ -1,0 +1,50 @@
+RLM-SKILL OOLONG eval | root=opus leaf=haiku | 10 items
+================================================================================
+[1/10] id=17000206 TASK_TYPE.LEAST_FREQ cw6 | root=opus
+      -> 'Label: numeric value'
+      [397.7s, turns=11, root 359,149tok/$0.4753 + leaf 2,227,116tok/$2.6268 (64 calls) = $3.1021]
+--------------------------------------------------------------------------------
+[2/10] id=17000208 TASK_TYPE.MOST_FREQ cw8 | root=opus
+      -> 'Label: numeric value'
+      [306.6s, turns=10, root 314,610tok/$0.4084 + leaf 2,192,777tok/$2.4516 (64 calls) = $2.8599]
+--------------------------------------------------------------------------------
+[3/10] id=17000222 TASK_TYPE.NUMERIC_ONE_CLASS cw8 | root=opus
+      -> 'Answer: 388'
+      [358.0s, turns=11, root 366,863tok/$0.5260 + leaf 2,678,476tok/$2.7558 (80 calls) = $3.2819]
+--------------------------------------------------------------------------------
+[4/10] id=17000223 TASK_TYPE.NUMERIC_ONE_CLASS cw8 | root=opus
+      -> 'e), Python aggregated the counts, and the final answer is stored in the REPL.  Answer: 794'
+      [399.8s, turns=9, root 279,103tok/$0.4093 + leaf 2,699,581tok/$2.8558 (80 calls) = $3.2652]
+--------------------------------------------------------------------------------
+[5/10] id=17000238 TASK_TYPE.NUMERIC_ONE_CLASS cw6 | root=opus
+      -> 'Answer: 401'
+      [465.1s, turns=12, root 393,739tok/$0.4978 + leaf 2,239,823tok/$2.6673 (64 calls) = $3.1651]
+--------------------------------------------------------------------------------
+[6/10] id=17000239 TASK_TYPE.NUMERIC_ONE_CLASS cw6 | root=opus
+      -> 'Answer: 643'
+      [400.2s, turns=11, root 357,009tok/$0.4806 + leaf 2,241,354tok/$2.6892 (64 calls) = $3.1698]
+--------------------------------------------------------------------------------
+[7/10] id=17000207 TASK_TYPE.RELATIVE_FREQ cw6 | root=opus
+      -> 'Answer: numeric value is less common than entity'
+      [402.1s, turns=9, root 279,301tok/$0.3983 + leaf 2,223,769tok/$2.6081 (64 calls) = $3.0064]
+--------------------------------------------------------------------------------
+[8/10] id=17000210 TASK_TYPE.RELATIVE_FREQ cw8 | root=opus
+      -> 'Answer: description and abstract concept is less common than entity'
+      [435.8s, turns=11, root 353,473tok/$0.4483 + leaf 2,203,998tok/$2.5079 (64 calls) = $2.9561]
+--------------------------------------------------------------------------------
+[9/10] id=17000213 TASK_TYPE.RELATIVE_FREQ cw8 | root=opus
+      -> 'Answer: entity is more common than human being'
+      [402.9s, turns=9, root 278,474tok/$0.3896 + leaf 2,740,495tok/$3.0845 (80 calls) = $3.4740]
+--------------------------------------------------------------------------------
+[10/10] id=17000237 TASK_TYPE.RELATIVE_FREQ cw6 | root=opus
+      -> 'dently showed location > abbreviation).  Answer: location is more common than abbreviation'
+      [1684.2s, turns=16, root 640,404tok/$1.1313 + leaf 13,209,276tok/$22.5192 (405 calls) = $23.6506]
+--------------------------------------------------------------------------------
+================================================================================
+[rlm_skill_opus] 10 items
+  ROOT : 3,622,125 tok | $5.1649
+  LEAF : 34,656,665 tok | $46.7662
+  TOTAL: 38,278,790 tok | $51.9311
+  wall : 5253.7s (87.6 min)
+  preds -> C:\Users\johna\OneDrive\Documents\Brainqub3\RLM\claude_code_RLM\rlm_vs_agent_experiment\rlm_skill_opus\preds_rlm_skill.jsonl
+  diag  -> C:\Users\johna\OneDrive\Documents\Brainqub3\RLM\claude_code_RLM\rlm_vs_agent_experiment\rlm_skill_opus\diagnostics.json

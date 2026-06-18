@@ -1,0 +1,15 @@
+RLM-SKILL OOLONG eval | root=haiku leaf=haiku | 10 items
+================================================================================
+[1/10] id=17000206 TASK_TYPE.LEAST_FREQ cw6 | root=haiku
+      -> 'Label: numeric value'
+      [1264.8s, turns=15, root 547,494tok/$0.1648 + leaf 15,451,676tok/$9.6463 (480 calls) = $9.8110]
+--------------------------------------------------------------------------------
+[2/10] id=17000208 TASK_TYPE.MOST_FREQ cw8 | root=haiku
+      -> '[no answer produced]'
+      [321.3s, turns=21, root 816,164tok/$0.1738 + leaf 904,464tok/$1.0660 (26 calls) = $1.2399]
+--------------------------------------------------------------------------------
+[3/10] id=17000222 TASK_TYPE.NUMERIC_ONE_CLASS cw8 | root=haiku
+      -> 'Answer: 436'
+      [547.3s, turns=16, root 598,160tok/$0.1304 + leaf 2,298,257tok/$2.9633 (64 calls) = $3.0936]
+--------------------------------------------------------------------------------
+[4/10] id=17000223 TASK_TYPE.NUMERIC_ONE_CLASS cw8 | root=haiku
