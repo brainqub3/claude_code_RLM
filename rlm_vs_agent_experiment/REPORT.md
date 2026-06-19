@@ -27,6 +27,40 @@ See *Recursive Language Models*, Zhang, Kraska & Khattab (MIT CSAIL), arXiv:2512
 committed PDF is at [`paper/2512.24601v3.pdf`](../paper/2512.24601v3.pdf); our scaffold follows
 its Algorithm 1.
 
+## The OOLONG `trec_coarse` task — and why it's hard
+
+**OOLONG** [Bertsch et al., 2025] is a long-context *reasoning* benchmark: the input is a large
+corpus of short questions, each already tagged with a semantic label, and each task can only be
+answered by **semantically labelling and then aggregating across nearly the whole corpus**. We use
+its `trec_coarse` split — ~3,182 questions (~131K tokens) from the TREC question-classification
+dataset, where every item belongs to one of six coarse classes (*entity, numeric value, human
+being, location, abbreviation, description/abstract concept*) — and sample 10 of its 50 tasks. The
+tasks in our run are: the most/least frequent label (`MOST_FREQ` / `LEAST_FREQ`), the exact count
+of one class (`NUMERIC_ONE_CLASS`), and pairwise relative-frequency comparisons (`RELATIVE_FREQ`).
+
+**Why it is a hard long-context task — and the right test for an RLM:**
+
+- **The answer depends on almost every line.** This is the property the paper singles out: OOLONG
+  is "a task where the answer depends explicitly on almost every line in the prompt." Unlike
+  needle-in-a-haystack (find one fact and stop), there is no span to retrieve — every one of the
+  ~3,182 items feeds a count or a ranking, and one missed or misclassified line can move the
+  answer. Search / grep / RAG, which rescue NIAH, do not help here.
+- **Linear-complexity aggregation, so it breaks models *early*.** The paper's central point is that
+  a model's *effective* context window depends on the task: NIAH keeps the needle constant, so
+  frontier models scale to 1M+ tokens, whereas OOLONG's work grows *linearly* with input (label +
+  tally every item) and models hit "context rot" and degrade at far *shorter* lengths. At 131K
+  tokens that is already thousands of items to process correctly in a single pass.
+- **Two compounding sub-tasks per item.** Each line must first be *classified* into a label and
+  then *aggregated*; classification noise and counting error compound over thousands of items.
+- **Exact counts are unforgiving.** The `NUMERIC` tasks demand an exact integer over ~3,182 items,
+  so a handful of misclassifications scores 0. That is exactly our result below — every arm solved
+  the noise-tolerant tasks (dominant label, directional comparison) but **all three scored 0/4 on
+  exact counting**, where near-perfect per-item accuracy is required.
+
+This is the canonical case the `/rlm` skill targets: a question that depends on almost every line
+and cannot be answered by a single retrieval — so the root must decompose the corpus, sub-query the
+leaf over chunks, and aggregate in code.
+
 ---
 
 ## Headline
