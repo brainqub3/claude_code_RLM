@@ -38,6 +38,9 @@ that makes it work: the **LLM does the semantics** (classify/extract/summarise) 
 
 ## Prerequisites
 
+- **Claude Code recommended** - This skill currently works best when run from
+  Claude Code. The RLM REPL is not yet implemented for direct Codex use because
+  the current harness launches a headless Claude Code instance for sub-LM calls.
 - **Claude Code account** - You need access to [Claude Code](https://claude.ai/claude-code), Anthropic's official CLI tool
 - **Python 3** - For the persistent REPL environment
 

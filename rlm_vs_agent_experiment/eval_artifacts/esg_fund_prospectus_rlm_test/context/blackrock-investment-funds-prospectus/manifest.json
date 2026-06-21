@@ -1,0 +1,892 @@
+{
+  "source_pdf": "blackrock-investment-funds-prospectus.pdf",
+  "source_sha256": "ad8bbb83ef2011ea6d5c3f66061b99b692b732d290bfd372b48f79ae14c41fce",
+  "source_bytes": 1882251,
+  "pages": 172,
+  "totals": {
+    "figures": 2,
+    "raster_images": 2,
+    "tables": 107,
+    "scanned_pages": 0
+  },
+  "generated_with": "pymupdf4llm 1.27.2.3",
+  "pymupdf_version": "1.27.2.3",
+  "default_render_dpi": 150,
+  "markdown_file": "blackrock-investment-funds-prospectus.md",
+  "pdf_file": "blackrock-investment-funds-prospectus.pdf",
+  "render_command_template": "python \"C:/Users/johna/OneDrive/Documents/RLM Test/.agents/skills/read-pdfs/scripts/render_page.py\" \"C:/Users/johna/OneDrive/Documents/RLM Test/context/blackrock-investment-funds-prospectus\" <page>",
+  "visuals_index": [
+    {
+      "page": 1,
+      "scanned": false,
+      "placeholders": [
+        {
+          "token": "[[fig:p1:1]]",
+          "kind": "image",
+          "caption": null
+        }
+      ]
+    },
+    {
+      "page": 2,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 3,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 4,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 5,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 6,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 7,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 8,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 9,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 10,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 11,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 12,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 13,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 14,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 15,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 16,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 17,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 18,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 19,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 20,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 21,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 22,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 23,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 24,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 25,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 26,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 27,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 28,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 29,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 30,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 31,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 32,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 33,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 34,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 35,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 36,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 37,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 38,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 39,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 40,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 41,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 42,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 43,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 44,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 45,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 46,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 47,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 48,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 49,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 50,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 51,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 52,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 53,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 54,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 55,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 56,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 57,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 58,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 59,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 60,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 61,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 62,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 63,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 64,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 65,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 66,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 67,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 68,
+      "scanned": false,
+      "placeholders": [
+        {
+          "token": "[[fig:p68:1]]",
+          "kind": "image",
+          "caption": null
+        }
+      ]
+    },
+    {
+      "page": 69,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 70,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 71,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 72,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 73,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 74,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 75,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 76,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 77,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 78,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 79,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 80,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 81,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 82,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 83,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 84,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 85,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 86,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 87,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 88,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 89,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 90,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 91,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 92,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 93,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 94,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 95,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 96,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 97,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 98,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 99,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 100,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 101,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 102,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 103,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 104,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 105,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 106,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 107,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 108,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 109,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 110,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 111,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 112,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 113,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 114,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 115,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 116,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 117,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 118,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 119,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 120,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 121,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 122,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 123,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 124,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 125,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 126,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 127,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 128,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 129,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 130,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 131,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 132,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 133,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 134,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 135,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 136,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 137,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 138,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 139,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 140,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 141,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 142,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 143,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 144,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 145,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 146,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 147,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 148,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 149,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 150,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 151,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 152,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 153,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 154,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 155,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 156,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 157,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 158,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 159,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 160,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 161,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 162,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 163,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 164,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 165,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 166,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 167,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 168,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 169,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 170,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 171,
+      "scanned": false,
+      "placeholders": []
+    },
+    {
+      "page": 172,
+      "scanned": false,
+      "placeholders": []
+    }
+  ]
+}
