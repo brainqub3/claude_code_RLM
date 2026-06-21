@@ -14,7 +14,7 @@
   "default_render_dpi": 150,
   "markdown_file": "blackrock-investment-funds-prospectus.md",
   "pdf_file": "blackrock-investment-funds-prospectus.pdf",
-  "render_command_template": "python \"C:/Users/johna/OneDrive/Documents/RLM Test/.agents/skills/read-pdfs/scripts/render_page.py\" \"C:/Users/johna/OneDrive/Documents/RLM Test/context/blackrock-investment-funds-prospectus\" <page>",
+  "render_command_template": null,
   "visuals_index": [
     {
       "page": 1,
