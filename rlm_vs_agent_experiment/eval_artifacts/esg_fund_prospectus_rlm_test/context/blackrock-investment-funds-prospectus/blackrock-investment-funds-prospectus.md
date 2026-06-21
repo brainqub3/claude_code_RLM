@@ -9,7 +9,7 @@ tables_total: 107
 scanned_pages: 0
 generated_with: "pymupdf4llm 1.27.2.3, pymupdf 1.27.2.3"
 default_render_dpi: 150
-render_command: "python \"C:/Users/johna/OneDrive/Documents/RLM Test/.agents/skills/read-pdfs/scripts/render_page.py\" \"C:/Users/johna/OneDrive/Documents/RLM Test/context/blackrock-investment-funds-prospectus\" <page>"
+render_command: null
 ---
 # blackrock-investment-funds-prospectus.pdf — Markdown extract
 
@@ -24,7 +24,7 @@ render_command: "python \"C:/Users/johna/OneDrive/Documents/RLM Test/.agents/ski
 When a question needs the actual pixels of a figure (not just its caption), find its `[[fig:p<page>:…]]` placeholder, note the page number, then render that one page and read the resulting PNG:
 
 ```bash
-python "C:/Users/johna/OneDrive/Documents/RLM Test/.agents/skills/read-pdfs/scripts/render_page.py" "C:/Users/johna/OneDrive/Documents/RLM Test/context/blackrock-investment-funds-prospectus" <page>
+# Render the relevant page from the preserved PDF using local PDF tooling.
 ```
 
 Rendering one page costs far fewer tokens than ingesting the whole PDF, so render only the pages you actually need to see.

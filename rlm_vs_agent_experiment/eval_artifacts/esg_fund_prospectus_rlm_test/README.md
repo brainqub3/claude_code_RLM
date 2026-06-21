@@ -1,6 +1,6 @@
-# ESG Fund Prospectus RLM Test
+# ESG Fund Prospectus RLM Evaluation
 
-Manual eval artifacts copied from `C:\Users\johna\OneDrive\Documents\RLM Test`.
+Manual eval artifacts for an ESG fund-prospectus comparison.
 
 This experiment was run in Claude Code as a comparison between one agent equipped
 with the RLM harness and one agent without it. The non-RLM run used Opus 4.8
@@ -28,6 +28,3 @@ Contents:
 - `ESG-Commitments-Analysis-Non-RLM.md` - Non-RLM result report.
 - `ESG-Commitments-Analysis-RLM.md` - RLM result report.
 - `ESG-Answer-Comparison-Scoring.md` - Comparison and scoring notes.
-
-The source folder's local `.agents/`, `.claude/`, and `skills-lock.json` files were
-not copied because they are local agent/tooling state rather than eval artifacts.
