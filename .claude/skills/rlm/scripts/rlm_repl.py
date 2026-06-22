@@ -49,6 +49,7 @@ spawn `claude -p` subprocesses. Treat it like running code you wrote.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import io
 import json
 import os
@@ -68,6 +69,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 DEFAULT_STATE_PATH = Path(".claude/rlm_state/state.pkl")
+DEFAULT_AUDIT_ROOT = Path(".claude/rlm_runs")
 DEFAULT_MAX_OUTPUT_CHARS = 8000
 
 # Sub-LM defaults. Override per-call or via environment.
@@ -350,6 +352,233 @@ def _ensure_parent_dir(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
+def _sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _timestamp_run_id() -> str:
+    return time.strftime("%Y%m%d_%H%M%S") + f"_{os.getpid()}"
+
+
+def _json_write(path: Path, obj: Dict[str, Any]) -> None:
+    _ensure_parent_dir(path)
+    path.write_text(json.dumps(obj, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _make_executable(path: Path) -> None:
+    try:
+        path.chmod(path.stat().st_mode | 0o111)
+    except Exception:
+        pass
+
+
+def _audit_runtime_source() -> Optional[Path]:
+    p = Path(__file__).resolve().parent / "rlm_audit_runtime.py"
+    return p if p.exists() else None
+
+
+def _write_audit_readme(run_dir: Path) -> None:
+    readme = textwrap.dedent(
+        """\
+        # RLM Audit Run
+
+        This directory contains standalone Python scripts for the REPL code that
+        was executed during one RLM session.
+
+        - Run all saved steps from a clean replay checkpoint:
+          `python replay_all.py`
+        - Run one step directly:
+          `python steps/step_0001.py`
+        - Live replay calls `llm_query` / `llm_query_map` again, so LLM text may
+          differ from the original run.
+        - Replay state is written to `replay_state.pkl`; the original live REPL
+          state is not modified.
+        """
+    )
+    (run_dir / "README.md").write_text(readme, encoding="utf-8")
+
+
+def _write_replay_all(run_dir: Path) -> None:
+    body = textwrap.dedent(
+        """\
+        #!/usr/bin/env python3
+        from __future__ import annotations
+
+        import subprocess
+        import sys
+        from pathlib import Path
+
+
+        def main(argv):
+            run_dir = Path(__file__).resolve().parent
+            resume = "--resume" in argv
+            state = run_dir / "replay_state.pkl"
+            if state.exists() and not resume:
+                state.unlink()
+            steps = sorted((run_dir / "steps").glob("step_*.py"))
+            if not steps:
+                print("No replay steps found.", file=sys.stderr)
+                return 1
+            for step in steps:
+                print(f"=== {step.name} ===", flush=True)
+                res = subprocess.run([sys.executable, str(step)])
+                if res.returncode != 0:
+                    return res.returncode
+            return 0
+
+
+        if __name__ == "__main__":
+            raise SystemExit(main(sys.argv[1:]))
+        """
+    )
+    p = run_dir / "replay_all.py"
+    p.write_text(body, encoding="utf-8")
+    _make_executable(p)
+
+
+def _create_audit_run(ctx_path: Path, content: str, audit_dir: str,
+                      run_id: Optional[str]) -> Dict[str, Any]:
+    root = Path(audit_dir)
+    rid = run_id or _timestamp_run_id()
+    run_dir = root / rid
+    suffix = 1
+    while run_dir.exists():
+        suffix += 1
+        run_dir = root / f"{rid}_{suffix}"
+    steps_dir = run_dir / "steps"
+    runtime_dir = run_dir / "runtime"
+    steps_dir.mkdir(parents=True, exist_ok=True)
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+
+    shutil.copyfile(Path(__file__).resolve(), runtime_dir / "rlm_repl.py")
+    runtime_src = _audit_runtime_source()
+    if runtime_src:
+        shutil.copyfile(runtime_src, runtime_dir / "rlm_audit_runtime.py")
+
+    ctx_abs = ctx_path.resolve() if ctx_path.exists() else (Path.cwd() / ctx_path).resolve()
+    manifest: Dict[str, Any] = {
+        "run_id": run_dir.name,
+        "created_by": "rlm_repl.py",
+        "initialized_at": time.time(),
+        "cwd": str(Path.cwd()),
+        "context_path": str(ctx_path),
+        "context_abs_path": str(ctx_abs),
+        "context_sha256": _sha256_text(content),
+        "context_size_chars": len(content),
+        "state_path": str(DEFAULT_STATE_PATH),
+        "steps": [],
+        "live_replay_note": (
+            "Generated step scripts call llm_query live; LLM outputs are not "
+            "expected to be byte-for-byte reproducible."
+        ),
+    }
+    if ctx_abs.exists():
+        try:
+            manifest["context_file_sha256"] = _sha256_file(ctx_abs)
+        except Exception:
+            pass
+    _json_write(run_dir / "manifest.json", manifest)
+    _write_replay_all(run_dir)
+    _write_audit_readme(run_dir)
+    return {
+        "enabled": True,
+        "run_id": run_dir.name,
+        "run_dir": str(run_dir),
+        "next_step": 1,
+    }
+
+
+def _render_step_script(code: str, step_index: int) -> str:
+    body = textwrap.indent(code.rstrip() or "pass", "    ")
+    return textwrap.dedent(
+        f"""\
+        #!/usr/bin/env python3
+        # Auto-generated RLM audit replay step {step_index:04d}.
+
+        import sys
+        from pathlib import Path
+
+        _rlm_run_dir = Path(__file__).resolve().parents[1]
+        _rlm_runtime_dir = _rlm_run_dir / "runtime"
+        sys.path.insert(0, str(_rlm_runtime_dir))
+
+        from rlm_audit_runtime import load_env, save_env
+
+        globals().update(load_env(_rlm_run_dir, step_index={step_index}))
+        try:
+        {body}
+        finally:
+            save_env(_rlm_run_dir, step_index={step_index}, namespace=globals())
+        """
+    )
+
+
+def _audit_record_exec(state: Dict[str, Any], state_path: Path, code: str,
+                       stdout_text: str, stderr_text: str,
+                       dropped: List[str]) -> Optional[Path]:
+    audit = state.get("audit")
+    if not isinstance(audit, dict) or not audit.get("enabled"):
+        return None
+    run_dir = Path(str(audit.get("run_dir", "")))
+    if not run_dir:
+        return None
+    steps_dir = run_dir / "steps"
+    steps_dir.mkdir(parents=True, exist_ok=True)
+    step_index = int(audit.get("next_step", 1))
+    stem = f"step_{step_index:04d}"
+    step_path = steps_dir / f"{stem}.py"
+    stdout_path = steps_dir / f"{stem}.stdout.txt"
+    stderr_path = steps_dir / f"{stem}.stderr.txt"
+    meta_path = steps_dir / f"{stem}.json"
+
+    step_path.write_text(_render_step_script(code, step_index), encoding="utf-8")
+    _make_executable(step_path)
+    stdout_path.write_text(stdout_text, encoding="utf-8")
+    stderr_path.write_text(stderr_text, encoding="utf-8")
+
+    final = state.get("final", {})
+    final_value = final.get("value") if isinstance(final, dict) else None
+    meta: Dict[str, Any] = {
+        "step": step_index,
+        "created_at": time.time(),
+        "code_sha256": _sha256_text(code),
+        "script": str(step_path.relative_to(run_dir)),
+        "stdout": str(stdout_path.relative_to(run_dir)),
+        "stderr": str(stderr_path.relative_to(run_dir)),
+        "stdout_chars": len(stdout_text),
+        "stderr_chars": len(stderr_text),
+        "dropped_unpickleable": dropped,
+        "state_path": str(state_path),
+        "final_set": isinstance(final, dict) and "value" in final,
+    }
+    if final_value is not None:
+        meta["final_sha256"] = _sha256_text(str(final_value))
+        meta["final_chars"] = len(str(final_value))
+    _json_write(meta_path, meta)
+
+    manifest_path = run_dir / "manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if isinstance(manifest, dict):
+            manifest.setdefault("steps", []).append(meta)
+            manifest["updated_at"] = time.time()
+            _json_write(manifest_path, manifest)
+    except Exception:
+        pass
+
+    audit["next_step"] = step_index + 1
+    state["audit"] = audit
+    return step_path
+
+
 def _load_state(state_path: Path) -> Dict[str, Any]:
     if not state_path.exists():
         raise RlmReplError(
@@ -540,17 +769,33 @@ def cmd_init(args: argparse.Namespace) -> int:
     state_path = Path(args.state)
     ctx_path = Path(args.context)
     content = _read_text_file(ctx_path, max_bytes=args.max_bytes)
+    audit = (
+        {"enabled": False}
+        if args.no_audit
+        else _create_audit_run(ctx_path, content, args.audit_dir, args.audit_run_id)
+    )
+    if audit.get("enabled"):
+        manifest_path = Path(str(audit["run_dir"])) / "manifest.json"
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["state_path"] = str(state_path)
+            _json_write(manifest_path, manifest)
+        except Exception:
+            pass
     state: Dict[str, Any] = {
-        "version": 2,
+        "version": 3,
         "context_path": str(ctx_path),
         "loaded_at": time.time(),
         "content": content,
         "buffers": [],
         "final": {},
         "globals": {},
+        "audit": audit,
     }
     _save_state(state, state_path)
     print(_metadata_str(state))
+    if audit.get("enabled"):
+        print(f"\nAudit replay package: {audit['run_dir']}")
     return 0
 
 
@@ -640,13 +885,22 @@ def cmd_exec(args: argparse.Namespace) -> int:
     filtered, dropped = _filter_pickleable(to_persist)
     state["globals"] = filtered
 
-    _save_state(state, state_path)
-
     out = stdout_buf.getvalue()
     err = stderr_buf.getvalue()
+    step_path = None
+    if not getattr(args, "no_audit", False):
+        try:
+            step_path = _audit_record_exec(state, state_path, code, out, err, dropped)
+        except Exception:
+            traceback.print_exc(file=stderr_buf)
+            err = stderr_buf.getvalue()
+    _save_state(state, state_path)
+
     if "value" in final_ref:
         out += (f"\n=== FINAL ANSWER SET ({len(final_ref['value']):,} chars) ===\n"
                 + _truncate(final_ref["value"], args.max_output_chars))
+    if step_path is not None:
+        out += f"\n=== AUDIT STEP SAVED: {step_path} ===\n"
     if dropped and args.warn_unpickleable:
         err += ("\n" if err else "") + "Dropped unpickleable variables: " + ", ".join(dropped) + "\n"
     if out:
@@ -684,6 +938,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_init.add_argument("context", help="Path to the context file")
     p_init.add_argument("--max-bytes", type=int, default=None,
                         help="Optional cap on bytes read from the context file")
+    p_init.add_argument("--audit-dir", default=str(DEFAULT_AUDIT_ROOT),
+                        help=f"Directory for standalone replay packages (default: {DEFAULT_AUDIT_ROOT})")
+    p_init.add_argument("--audit-run-id", default=None,
+                        help="Optional audit run directory name")
+    p_init.add_argument("--no-audit", action="store_true",
+                        help="Do not create standalone replay scripts for this REPL state")
     p_init.set_defaults(func=cmd_init)
 
     p_status = sub.add_parser("status", help="Show metadata + persisted var names")
@@ -706,6 +966,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help=f"Truncate stdout/stderr to N chars (default: {DEFAULT_MAX_OUTPUT_CHARS})")
     p_exec.add_argument("--warn-unpickleable", action="store_true",
                         help="Warn on stderr when variables could not be persisted")
+    p_exec.add_argument("--no-audit", action="store_true",
+                        help="Execute without writing a standalone audit step")
     p_exec.set_defaults(func=cmd_exec)
     return p
 

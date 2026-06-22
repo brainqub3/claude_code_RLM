@@ -97,6 +97,43 @@ The RLM workflow will then:
 - Probe the format and choose a chunking strategy
 - Write REPL code that programmatically sub-queries the context in chunks via `llm_query`
 - Aggregate with plain Python and return the answer via `FINAL` / `FINAL_VAR`
+- Save each REPL `exec` block as a standalone Python replay step under
+  `.claude/rlm_runs/<run_id>/`
+
+### Standalone audit replay
+
+By default, `rlm_repl.py init` creates an audit replay package:
+
+```text
+.claude/rlm_runs/<run_id>/
+|-- manifest.json
+|-- replay_all.py
+|-- runtime/
+`-- steps/
+    |-- step_0001.py
+    |-- step_0001.json
+    |-- step_0001.stdout.txt
+    `-- step_0001.stderr.txt
+```
+
+Run all saved steps from a clean replay checkpoint:
+
+```bash
+python .claude/rlm_runs/<run_id>/replay_all.py
+```
+
+The generated scripts recreate the REPL globals (`content`, `grep`,
+`llm_query_map`, `FINAL_VAR`, persisted variables, etc.) and write replay state to
+`replay_state.pkl`, separate from the live `.claude/rlm_state/state.pkl`. They call
+`llm_query` live, so LLM outputs are not guaranteed to match the original run.
+
+Useful knobs:
+
+```bash
+python .claude/skills/rlm/scripts/rlm_repl.py init context.txt --audit-run-id my_run
+python .claude/skills/rlm/scripts/rlm_repl.py init context.txt --audit-dir audit_runs
+python .claude/skills/rlm/scripts/rlm_repl.py init context.txt --no-audit
+```
 
 ## Working with Long Files
 
