@@ -81,7 +81,9 @@ Set optional knobs via environment before running, e.g.:
 ## The loop (Algorithm 1)
 
 Run these via the **Bash** tool. State persists between calls in
-`.claude/rlm_state/state.pkl`.
+`.claude/rlm_state/state.pkl`. By default, `init` also creates a standalone
+audit replay package under `.claude/rlm_runs/<run_id>/`; every `exec` saves the
+submitted Python as `steps/step_XXXX.py`.
 
 ### 1. Initialise — load the context, read only its metadata
 
@@ -91,6 +93,8 @@ python .claude/skills/rlm/scripts/rlm_repl.py init <context_path>
 
 This prints the context's type, char/line/token estimate, and a short prefix.
 **Do not** read the context file with the Read tool — that defeats the purpose.
+It also prints the audit replay package path. Use `--no-audit` only when you do
+not want standalone step scripts.
 
 ### 2. Probe — understand the format with small, cheap code
 
@@ -197,6 +201,27 @@ Injected automatically every `exec` (you never import or define these):
 
 Your own variables persist between `exec` calls (anything pickleable). `stdout` is
 truncated (~8000 chars) before you see it — `print` summaries and samples, not bulk.
+
+## Standalone audit replay
+
+Each audited `exec` writes:
+
+- `steps/step_XXXX.py` - a normal Python script containing the original REPL code
+  plus a small prelude that recreates the RLM globals.
+- `steps/step_XXXX.json` - metadata such as hashes, output paths, and final status.
+- `steps/step_XXXX.stdout.txt` / `.stderr.txt` - the original captured output.
+- `runtime/` - a copy of the runtime needed by the generated scripts.
+- `replay_all.py` - runs all saved steps from a clean `replay_state.pkl`.
+
+Replay with:
+
+```bash
+python .claude/rlm_runs/<run_id>/replay_all.py
+```
+
+Replay calls `llm_query` live, so sub-LM text can differ from the original run.
+The replay checkpoint is separate from the live REPL state and does not mutate
+`.claude/rlm_state/state.pkl`.
 
 ## Guardrails — these are where RLMs win or lose
 
